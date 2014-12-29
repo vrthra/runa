@@ -566,6 +566,9 @@ class TypeChecker(object):
 			t = types.get(type)
 			assert t.name == 'Exception'
 	
+	def Resume(self, node, scope):
+		pass
+	
 	def Branch(self, node, scope):
 		return
 	

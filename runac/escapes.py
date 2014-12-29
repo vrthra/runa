@@ -163,6 +163,9 @@ class EscapeFinder(object):
 	def LPad(self, node, escape=None):
 		pass
 	
+	def Resume(self, node, escape=None):
+		pass
+	
 	def Call(self, node, escape=None):
 		
 		if node.fun.name == 'runa.free' and self.fun.name.name == '__del__':

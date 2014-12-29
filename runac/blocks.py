@@ -43,8 +43,15 @@ class LoopHeader(util.AttribRepr):
 
 class LPad(util.AttribRepr):
 	fields = ()
-	def __init__(self, map):
+	def __init__(self, var, map, fail):
+		self.var = var
 		self.map = map
+		self.fail = fail
+
+class Resume(util.AttribRepr):
+	fields = ()
+	def __init__(self, var):
+		self.var = var
 
 class Block(util.AttribRepr):
 	
@@ -451,7 +458,12 @@ class FlowFinder(object):
 			map[handler.type] = self.cur.id
 			self.flow.edge(pad.id, self.cur.id)
 		
-		pad.push(LPad(map))
+		unmatched = self.flow.block('caught-no-match')
+		padinst = LPad(self.name(), map, unmatched.id)
+		pad.push(padinst)
+		unmatched.push(Resume(padinst.var))
+		self.flow.edge(pad.id, unmatched.id)
+		
 		exit = self.cur = self.flow.block('try-exit')
 		last[1].callbr = exit.id, pad.id
 		self.flow.edge(last[0], exit.id)
@@ -478,7 +490,10 @@ class Module(object):
 			self.names[k] = v
 		self.code += mod.code
 
-FINAL = ast.Return, ast.Raise, Branch, CondBranch, ast.Yield, LoopHeader, LPad
+FINAL = (
+	ast.Return, ast.Raise, ast.Yield,
+	Branch, CondBranch, LoopHeader, LPad, Resume,
+)
 
 def module(node):
 	
