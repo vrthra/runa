@@ -731,10 +731,32 @@ class CodeGen(object):
 		self.writeline('unreachable')
 	
 	def LPad(self, node, frame):
-		pass
-	
+		
+		res = self.varname()
+		ftype = 'i32 (i32, i32, i64, %UnwEx*, i8*)*'
+		personality = 'i8* bitcast (%s @__runa_personality to i8*)' % ftype
+		clauses = ' '.join('catch i64* @%s.size' % t.name for t in node.map)
+		bits = res, 'personality ' + personality, clauses
+		self.writeline('%s = landingpad { i8*, i32 } %s %s' % bits)
+		frame[node.var] = res
+		
+		exc = self.varname()
+		self.writeline('%s = extractvalue { i8*, i32 } %s, 0' % (exc, res))
+		sel = self.varname()
+		self.writeline('%s = extractvalue { i8*, i32 } %s, 1' % (sel, res))
+		
+		tinfo = self.varname()
+		cast = 'i8* bitcast (i64* @Exception.size to i8*)'
+		bits = tinfo, cast
+		self.writeline('%s = call i32 @llvm.eh.typeid.for(%s) nounwind' % bits)
+		
+		match = self.varname()
+		self.writeline('%s = icmp eq i32 %s, %s' % (match, sel, tinfo))
+		bits = match, node.map.items()[0][1], node.fail
+		self.writeline('br i1 %s, label %%L%s, label %%L%s' % bits)
+		
 	def Resume(self, node, frame):
-		pass
+		self.writeline('resume { i8*, i32 } %s' % frame[node.var])
 	
 	def Pass(self, node, frame):
 		pass
@@ -840,9 +862,15 @@ class CodeGen(object):
 				ptr = self.load(ptr)
 			return Value(ptr.type, self.gep(ptr, idx))
 		
+		instr, targets = 'call', ''
+		if node.callbr:
+			instr = 'invoke'
+			targets = ' to label %%L%i unwind label %%L%i' % node.callbr
+		
 		argstr = ', '.join('%s %s' % (a.type.ir, a.var) for a in args)
 		if rtype == types.void():
-			self.writeline('call %s %s(%s)' % (type.ir, name, argstr))
+			bits = instr, type.ir, name, argstr, targets
+			self.writeline('%s %s %s(%s)%s' % bits)
 			if node.args and isinstance(node.args[0], typer.Init):
 				return args[0]
 			else:
@@ -853,8 +881,8 @@ class CodeGen(object):
 			return rvar
 		
 		res = self.varname()
-		bits = res, type.ir, name, argstr
-		self.writeline('%s = call %s %s(%s)' % bits)
+		bits = res, instr, type.ir, name, argstr, targets
+		self.writeline('%s = %s %s %s(%s)%s' % bits)
 		return Value(rtype, res)
 	
 	def Function(self, node, frame):
