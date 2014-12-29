@@ -683,15 +683,20 @@ class CodeGen(object):
 		
 		obj = self.visit(node.obj, frame)
 		t = types.unwrap(obj.type)
-		assert t.name.startswith('array[')
-		et = t.attribs['data'][1].over
-		
 		key = self.visit(node.key, frame)
 		assert key.type == types.get('int'), (key.type, node)
 		
-		data = self.gep(obj, 0, 1)
-		obj = '[0 x %s]*' % et.ir, data
-		elm = self.gep(obj, 0, key)
+		if t.name.startswith('array['):
+			data = self.gep(obj, 0, 1)
+			et = t.attribs['data'][1].over
+			obj = '[0 x %s]*' % et.ir, data
+			elm = self.gep(obj, 0, key)
+		elif obj.type.name.split('[')[0] == 'lump':
+			et = obj.type.params[0]
+			elm = self.gep(obj, key)
+		else:
+			assert False, t
+		
 		return Value(types.ref(et), elm)
 	
 	def Ternary(self, node, frame):
@@ -962,6 +967,9 @@ class CodeGen(object):
 		
 		if type.name == 'array[str]':
 			# predefined for args creation function
+			return
+		
+		if type.name.startswith('lump['):
 			return
 		
 		if type.name.startswith('array['):

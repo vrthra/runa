@@ -143,6 +143,9 @@ class template(ReprId):
 			'attribs': {},
 		})
 		
+		if self.name == 'lump':
+			cls.ir = params[0].ir + '*'
+		
 		trans = {k: v for (k, v) in zip(self.params, params)}
 		for k, v in self.attribs.iteritems():
 			if isinstance(v[1], Stub):
