@@ -75,7 +75,6 @@ Done:
 	
 }
 
-%UnwEx = type { i64, i8*, i64, i64 }
 %UnwExClean = type void (i32, %UnwEx*)*
 
 declare i32 @_Unwind_RaiseException(%UnwEx*)
@@ -88,7 +87,7 @@ declare i32 @_Unwind_RaiseException(%UnwEx*)
 define void @runa.unhandled(%Exception* %exc) {
 	%prefix = getelementptr inbounds [21 x i8]* @Unhandled, i32 0, i32 0
 	call {{ WORD }} @write(i32 2, i8* %prefix, {{ WORD }} 21)
-	%msg.slot = getelementptr %Exception* %exc, i32 0, i32 4
+	%msg.slot = getelementptr %Exception* %exc, i32 0, i32 1
 	%msg = load %str** %msg.slot
 	%msg.data.slot = getelementptr %str* %msg, i32 0, i32 1
 	%msg.data = load i8** %msg.data.slot

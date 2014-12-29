@@ -1,9 +1,12 @@
-class Exception:
-	
+class UnwEx:
 	ehid: uint
 	clean: &byte
 	priv1: uint
 	priv2: uint
+
+class Exception:
+	
+	header: UnwEx
 	msg: $str
 	
 	def __init__(self, msg: $str):
