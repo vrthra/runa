@@ -240,7 +240,12 @@ class TypeChecker(object):
 		self.visit(node.left, scope)
 		self.visit(node.right, scope)
 		assert isinstance(node.right, ast.NoneVal), node.right
-		assert isinstance(node.left.type, types.WRAPPERS), node.left
+		
+		if not isinstance(node.left.type, types.opt):
+			wrapper = isinstance(node.left.type, types.WRAPPERS)
+			lump = node.left.type.name.split('[', 1)[0] == 'lump'
+			assert wrapper or lump, node.left
+		
 		node.type = types.get('bool')
 	
 	def compare(self, op, node, scope):
@@ -433,7 +438,7 @@ class TypeChecker(object):
 			else:
 				
 				# calling an object attribute (method)
-				t = types.unwrap(node.name.obj.type)
+				t = types.unwrap(node.name.obj.type, True)
 				if isinstance(t, types.trait):
 					node.virtual = True
 				
