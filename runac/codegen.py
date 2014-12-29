@@ -830,6 +830,13 @@ class CodeGen(object):
 			fun = self.load(Value(types.ref(ft), fp))
 			type, name = fun.type, fun.var
 		
+		if name.startswith('@lump') and name.endswith('.offset'):
+			# lump[T].offset() just does a GEP
+			ptr, idx = args[0], int(args[1].var)
+			while isinstance(ptr.type, types.WRAPPERS):
+				ptr = self.load(ptr)
+			return Value(ptr.type, self.gep(ptr, idx))
+		
 		argstr = ', '.join('%s %s' % (a.type.ir, a.var) for a in args)
 		if rtype == types.void():
 			self.writeline('call %s %s(%s)' % (type.ir, name, argstr))
@@ -854,6 +861,9 @@ class CodeGen(object):
 		irname = node.name.name
 		if hasattr(node, 'irname'):
 			irname = node.irname
+		
+		if node.irname.startswith('lump'):
+			return # code for lump.offset() is generated in Call()
 		
 		ctxt, self.intercept = None, None
 		if node.flow.yields:
